@@ -1,0 +1,293 @@
+<div class="text-center found-visit-count"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+    Number of dates for you </font></font><span class="count"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">: 2</font></font></span>
+</div>
+
+<div class="container modern">
+<div id="closest-date"></div>
+
+<form action="/Visit/Search" class="submit-form" id="filter-form" method="post" style="display: none"><input data-val="true" data-val-number="Pole CurrentPage musi być liczbą." data-val-required="The CurrentPage field is required." id="CurrentPage" name="CurrentPage" type="hidden" value="1"><input data-val="true" data-val-number="Pole PageSize musi być liczbą." data-val-required="The PageSize field is required." id="PageSize" name="PageSize" type="hidden" value="10"><input data-val="true" data-val-required="The ChangeDate field is required." id="ChangeDate" name="ChangeDate" type="hidden" value="False"><input data-val="true" data-val-number="Pole ServiceLock musi być liczbą." id="ServiceLock" name="ServiceLock" type="hidden" value="1765"><input data-val="true" data-val-number="Pole ServiceTypeLock musi być liczbą." id="ServiceTypeLock" name="ServiceTypeLock" type="hidden" value="13"><input data-val="true" data-val-number="Pole DepartmentLock musi być liczbą." id="DepartmentLock" name="DepartmentLock" type="hidden" value=""><input data-val="true" data-val-required="The SearchPremium field is required." id="SearchPremium" name="SearchPremium" type="hidden" value="False"><input data-val="true" data-val-required="The CanSearchPremium field is required." id="CanSearchPremium" name="CanSearchPremium" type="hidden" value="False"><input data-val="true" data-val-required="The ContactTypeFilterVisible field is required." id="ContactTypeFilterVisible" name="ContactTypeFilterVisible" type="hidden" value="False"><input id="CheckedReasons" name="CheckedReasons" type="hidden" value=""><input data-val="true" data-val-number="Pole VisitToCancelId musi być liczbą." id="VisitToCancelId" name="VisitToCancelId" type="hidden" value=""><input data-val="true" data-val-required="The BookWithoutReferral field is required." id="BookWithoutReferral" name="BookWithoutReferral" type="hidden" value="False"><input data-val="true" data-val-number="Pole Miasto musi być liczbą." data-val-range="Wybór miasta jest obowiązkowy" data-val-range-max="2147483647" data-val-range-min="1" data-val-required="Wybór miasta jest obowiązkowy" id="City" name="City" type="hidden" value="1"><input data-val="true" data-val-number="Pole Kategoria musi być liczbą." data-val-range="Wymagane jest wybranie typu" data-val-range-max="2147483647" data-val-range-min="1" data-val-required="Wymagane jest wybranie typu" id="ServiceType" name="ServiceType" type="hidden" value="12"><input data-val="true" data-val-number="Pole Usługa musi być liczbą." data-val-range="Wymagane jest wybranie usługi" data-val-range-max="2147483647" data-val-range-min="1" data-val-required="Wymagane jest wybranie usługi" id="Service" name="Service" type="hidden" value="1765"><input data-val="true" data-val-required="The FiltersVisible field is required." id="FiltersVisible" name="FiltersVisible" type="hidden" value="False"><input data-val="true" data-val-required="The Lekarze anglojęzyczni field is required." id="ForeignLanguageDoctor" name="ForeignLanguageDoctor" type="hidden" value="False">                    <div class="filter-wrapper cg-2">
+            <div class="filters">
+                <div class="filter dropdown" id="filter-department">
+                    <button type="button" class="filter-label dropdown-toggle" data-toggle="dropdown">
+                        <span class="filter-icon">
+                            <i class="fa-solid fa-hotel lg-icon"></i>
+                        </span>
+                        <span class="filter-text" data-template-pv1="{0} oddziały" data-template-pv2="{0} oddziałów" data-template-favourite="Preferowane oddziały" data-checked-all-label="Wszystkie oddziały" data-choose-label="Wybierz oddział">
+                        </span>
+                        <span class="filter-icon">
+                            <i class="caret"></i>
+                        </span>
+                    </button>
+
+                    <select id="Department" name="Department" class="multiselect" multiple="" data-val="true" data-val-required="Pole wymagane">
+
+                            <option selected="" value="40" data-favourite="false"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                                Branch Center
+                            </font></font></option>
+                            <option selected="" value="1" data-favourite="false"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                                Zacisze Branch
+                            </font></font></option>
+                    </select>
+                </div>
+                <div class="filter dropdown" id="filter-doctor">
+                    <button type="button" class="filter-label dropdown-toggle" data-toggle="dropdown">
+                        <span class="filter-icon">
+                            <i class="fa-regular fa-stethoscope"></i>
+                        </span>
+                        <span class="filter-text" data-template="{0} lekarzy" data-checked-all-label="Wszyscy lekarze" data-choose-label="Wybierz lekarza">
+                        </span>
+                        <span class="filter-icon">
+                            <i class="caret"></i>
+                        </span>
+                    </button>
+                    <select class="multiselect" data-val="true" data-val-required="Wybór lekarza jest obowiązkowy" id="Doctor" multiple="multiple" name="Doctor"></select>
+                </div>
+
+
+                <div class="filter date-range bold" id="filter-date">
+                    <button type="button" class="filter-label " data-content="date" data-dstart="today" data-dend="2026-08-13" data-dfrom="2026-05-15" data-dto="2026-05-29" data-hours="">
+                        <span class="filter-icon">
+                            <i class="fa-light fa-calendar"></i>
+                        </span>
+                        <span class="filter-text date"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                                 15/05 - 29/05
+                         </font></font></span>
+                        <span class="divider time"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                            /
+                        </font></font></span>
+                        <span class="filter-icon time">
+                            <i class="fa-regular fa-clock"></i>
+                        </span>
+                        <span class="filter-text time">
+                                <span class="time hide" data-value="1"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">to 10:00 </font></font></span>
+                                <span class="time hide" data-value="2"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">10:00 - 16:00 </font></font></span>
+                                <span class="time hide" data-value="3"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">to 16:00 </font></font></span>
+                                <span class="time hide" data-value="4"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">from 16:00 </font></font></span>
+                                <span class="time hide" data-value="5"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">to 10:00, from 16:00 </font></font></span>
+                                <span class="time hide" data-value="6"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">from 10:00 </font></font></span>
+                            <span class="time " data-value="-1"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">any time</font></font></span>
+                        </span>
+                        <span class="filter-icon">
+                            <i class="caret"></i>
+                        </span>
+                    </button>
+                        <input type="checkbox" class="hidden" name="VisitHours" value="1" checked="">
+                        <input type="checkbox" class="hidden" name="VisitHours" value="2" checked="">
+                        <input type="checkbox" class="hidden" name="VisitHours" value="3" checked="">
+                    <input class="date1 hidden" data-val="true" data-val-date="Pole Data wizyty musi być datą." data-val-datemustbeequalorgreaterthancurrentdate="Data nie może być wcześniejsza niż obecna." data-val-required="Pole wymagane" id="VisitDateFrom" name="VisitDateFrom" type="text" value="2026-05-15">
+                    <input class="date2 hidden" data-val="true" data-val-date="Pole Data wizyty musi być datą." data-val-datemustbeequalorgreaterthancurrentdate="Data nie może być wcześniejsza niż obecna." data-val-required="Pole wymagane" id="VisitDateTo" name="VisitDateTo" type="text" value="2026-05-29">
+                </div>
+
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.625rem 2rem; margin: auto 0; font-size: 1.2em;"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                Search
+            </font></font></button>
+        </div>
+</form>                <div id="visit-result">
+        
+
+
+
+
+<div class="visit-box slot-0">
+
+<div class="header f-column">
+<div class="f-row justify-content-between align-items-center">
+<div class="date-time f-row">
+    <div class="date text-nowrap">
+        <i class="fa-regular fa-calendar"></i>
+        <span><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">May 15, 2026 </font></font></span>
+        <span class="text-lightc" style="margin-right: 1.5rem; font-size: 0.8em;"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+            (Friday)
+        </font></font></span>
+    </div>
+    <div class="time text-nowrap">
+        <i class="fa-regular fa-clock"></i>
+        <span><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">19:00</font></font></span>
+    </div>
+</div>
+<div class="brand f-row align-items-center">
+    <div class="text-right"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">Medical Center</font></font></div>
+    <img src="/img/logo/logo_cm.png" alt="">
+</div>
+</div>
+</div>
+<hr class="visit-box-devision">
+<div class="f-row align-items-center cg-2">
+<div class="f-row align-items-center cg-2 service-doctor">
+<div class="photo print-hide" style="background-image: url(https://online.enel.pl/Photo/Get/337.png);"></div>
+<div class="f-column">
+    <div class="service"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+        Computed tomography of the sinuses
+
+    </font></font></div>
+    <div class="doctor text-lightc"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+         TK ZACISZE
+
+
+    </font></font></div>
+</div>
+</div>
+<div class="content rg-1 cg-2">
+        <div class="stationary">
+<i class="fa-solid fa-hotel lg-icon"></i>
+<div class="description  text-lightc">
+    <div>
+        <div class="department"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">Zacisze Branch</font></font></div>
+        <div><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">Gilarska Street 86c, Warsaw</font></font></div>
+    </div>
+</div>
+        <div class="price-tag text-lightc">
+
+        <div class="price-inline">
+            <label class="text-nowrap price-large"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                Price for you:
+             </font></font></label>
+
+            <span class="text-nowrap price-large your-price"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                0 PLN
+            </font></font></span>
+
+                <span class="fa-regular fa-circle-info center btn-popover" aria-hidden="false" data-toggle="popover" data-trigger="hover" data-placement="left" data-content="Cena wynikająca z umowy abonamentowej. Cena poza abonamentem: 424.00 zł. "></span>
+        </div>
+</div>
+
+        <a href="" title="" class="btn btn-sm btn-wrap btn-primary makeReservationButton " data-toggle="modal" data-target="#reservationModal" data-backdrop="static" data-keyboard="false" onclick="makeReservation()"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+Book
+</font></font></a>
+
+</div>
+
+</div>
+</div>
+
+
+
+<hr class="additional-info visit-box-devision" style="display: none">
+<div class="additional-info text-center text-warning paper-referral-reminder" style="display: none">
+<strong>Pamiętaj</strong>, aby na wizytę zabrać ze sobą papierową wersję skierowania. Będzie ono podstawą do wykonania usługi w ramach posiadanego abonamentu. 
+</div>
+
+</div>
+
+<div class="visit-box slot-1">
+
+<div class="header f-column">
+<div class="f-row justify-content-between align-items-center">
+<div class="date-time f-row">
+    <div class="date text-nowrap">
+        <i class="fa-regular fa-calendar"></i>
+        <span><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">May 15, 2026 </font></font></span>
+        <span class="text-lightc" style="margin-right: 1.5rem; font-size: 0.8em;"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+            (Friday)
+        </font></font></span>
+    </div>
+    <div class="time text-nowrap">
+        <i class="fa-regular fa-clock"></i>
+        <span><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">19:15</font></font></span>
+    </div>
+</div>
+<div class="brand f-row align-items-center">
+    <div class="text-right"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">Medical Center</font></font></div>
+    <img src="/img/logo/logo_cm.png" alt="">
+</div>
+</div>
+</div>
+<hr class="visit-box-devision">
+<div class="f-row align-items-center cg-2">
+<div class="f-row align-items-center cg-2 service-doctor">
+<div class="photo print-hide" style="background-image: url(https://online.enel.pl/Photo/Get/337.png);"></div>
+<div class="f-column">
+    <div class="service"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+        Computed tomography of the sinuses
+
+    </font></font></div>
+    <div class="doctor text-lightc"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+         TK ZACISZE
+
+
+    </font></font></div>
+</div>
+</div>
+<div class="content rg-1 cg-2">
+        <div class="stationary">
+<i class="fa-solid fa-hotel lg-icon"></i>
+<div class="description  text-lightc">
+    <div>
+        <div class="department"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">Zacisze Branch</font></font></div>
+        <div><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">Gilarska Street 86c, Warsaw</font></font></div>
+    </div>
+</div>
+        <div class="price-tag text-lightc">
+
+        <div class="price-inline">
+            <label class="text-nowrap price-large"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                Price for you:
+             </font></font></label>
+
+            <span class="text-nowrap price-large your-price"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+                0 PLN
+            </font></font></span>
+
+                <span class="fa-regular fa-circle-info center btn-popover" aria-hidden="false" data-toggle="popover" data-trigger="hover" data-placement="left" data-content="Cena wynikająca z umowy abonamentowej. Cena poza abonamentem: 424.00 zł. "></span>
+        </div>
+</div>
+
+        <a href="" title="" class="btn btn-sm btn-wrap btn-primary makeReservationButton " data-toggle="modal" data-target="#reservationModal" data-backdrop="static" data-keyboard="false" onclick="makeReservation()"><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+Book
+</font></font></a>
+
+</div>
+
+</div>
+</div>
+
+
+
+<hr class="additional-info visit-box-devision" style="display: none">
+<div class="additional-info text-center text-warning paper-referral-reminder" style="display: none">
+<strong>Pamiętaj</strong>, aby na wizytę zabrać ze sobą papierową wersję skierowania. Będzie ono podstawą do wykonania usługi w ramach posiadanego abonamentu. 
+</div>
+
+</div>
+
+<div class="text-center print-hide">
+<ul class="pagination">
+    <li class="disabled print-hide"><a href="javascript:void(0)" disabled=""><i class="ti-angle-double-left"></i></a></li>
+
+<li class="active">
+    <span><font dir="auto" style="vertical-align: inherit;"><font dir="auto" style="vertical-align: inherit;">
+        1
+    </font></font></span>
+</li>
+
+
+    <li class="disabled print-hide"><a href="javascript:void(0)" disabled=""><i class="ti-angle-double-right"></i></a></li>
+</ul>
+</div>
+
+<script>
+
+$('#SearchPremiumModalBtn').on('click', function (e) {
+e.stopPropagation();
+e.preventDefault();
+$('#premiumModal').modal('show');
+});
+
+
+setTimeout(function () {
+updateFoundCount(2);
+updateHourRanges([{"id":3,"count":2}]);
+}, 100);
+
+</script>
+
+
+
+
+
+
+
+
+    </div>
+</div>

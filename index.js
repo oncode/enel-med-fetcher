@@ -4,6 +4,7 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const { CookieJar } = require("tough-cookie");
 const { wrapper } = require("axios-cookiejar-support");
+// const fs = require("fs");
 
 const BASE_URL = "https://online.enel.pl";
 
@@ -13,9 +14,15 @@ const PASSWORD = process.env.PASSWORD;
 const CITY_ID = 1; // Warszawa
 const ENGLISH = false; // if true, less doctors will be available (only english-speaking)
 const DOCTORS = []; // leave empty to search all available doctors
+const SKIP_IMMEDIATE = true; // if true, skip sudden free appointments within the next 1 hour (cause we can't go there so fast), note: we only check first page of results then
 
-const SERVICE = "1866"; // MR sacroiliac joints
-const SERVICE_TYPE = "12"; // Magnetic resonance (MR)
+// e.g. for CT of sinuses
+const SERVICE = "1765"; // CT of sinuses
+const SERVICE_TYPE = "13"; // Computed tomography (CT)
+
+// or for MR sacroiliac joints
+// const SERVICE = "1866"; // MR sacroiliac joints
+// const SERVICE_TYPE = "12"; // Magnetic resonance (MR)
 
 
 const jar = new CookieJar();
@@ -47,9 +54,37 @@ function extractSearchCsrf(html) {
     return token;
   }
 
-function extractVisitCount(html) {
+function extractVisitCount(html, skipImmediate = true) {
   const $ = cheerio.load(html);
-  return $(".found-visit-count .count").text().trim();
+
+  if (!skipImmediate) {
+    // simply get all found visits
+    return $(".found-visit-count .count").text().trim();
+  } else {
+    // count only appointments that are not within the next 1 hour (cause we can't go there so fast)
+    // TODO: make the count work if there would be .pagination active
+    let visitCount = 0;
+
+    $("#visit-result .visit-box .date-time").each((i, el) => {
+      // get .date element inside with string "dd.MM.yyyy"
+      const dateStr = $(el).find(".date span").first().text().trim();
+      
+      // get .time element inside with string "HH:mm"
+      const timeStr = $(el).find(".time span").first().text().trim();
+
+      const dateTime = new Date(`${dateStr} ${timeStr}`.replace(/(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})/, "$3-$2-$1T$4:$5:00"));
+      const now = new Date();
+      const diffHours = (dateTime - now) / (1000 * 60 * 60);
+
+      // console.log(dateStr, timeStr, dateTime, diffHours);
+
+      if (diffHours > 1) {
+        visitCount++;
+      }
+    });
+
+    return visitCount;
+  }
 }
 
 function getPolishDate(offsetDays = 0) {
@@ -72,6 +107,12 @@ function getPolishDate(offsetDays = 0) {
 
 // ---------- main ----------
 (async function main() {
+  // read example-results.html to test the count parsing
+  // const searchRespTest = fs.readFileSync("example-results.html", "utf-8");
+  // const foundCount = extractVisitCount(searchRespTest, SKIP_IMMEDIATE);
+  // console.log("📊 Found visit count (test):", foundCount);
+  // return;
+
   try {
     // Change language to English
     if (ENGLISH) {
@@ -219,8 +260,12 @@ function getPolishDate(offsetDays = 0) {
     // 7. PARSE RESULT COUNT
     // console.log(searchResp.data);
 
-    const foundCount = extractVisitCount(searchResp.data);
+    const foundCount = extractVisitCount(searchResp.data, SKIP_IMMEDIATE);
     console.log("📊 Found visit count:", foundCount);
+
+    if (foundCount > 0) {
+      console.log("\x07"); // beep when done
+    }
 
   } catch (err) {
     console.error("❌ Error:", err.message);

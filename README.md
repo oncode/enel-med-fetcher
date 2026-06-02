@@ -45,6 +45,12 @@ npm start
 
 The script will log in, query available appointments, and print the number of found visits to the console.
 
+To automatically run the script at a specified interval, use a tool like [pm2](https://pm2.keymetrics.io/) or [node-schedule](https://www.npmjs.com/package/node-schedule). Or just a simple while loop in your terminal running the script every 5 minutes:
+
+```bash
+while true; do npm start; sleep 300; done
+```
+
 ## Dependencies
 
 - [axios](https://github.com/axios/axios) — HTTP client
