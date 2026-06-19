@@ -10,13 +10,13 @@ const SETTINGS_FILE = path.join(__dirname, "settings.json");
 const DEFAULT_SETTINGS = {
   LOGIN_ID: process.env.LOGIN_ID || "",
   PASSWORD: process.env.PASSWORD || "",
-  CITY_ID: 1,
-  ENGLISH: false,
-  DOCTORS: [],
-  SKIP_IMMEDIATE: true,
-  SERVICE: "1765",
-  SERVICE_TYPE: "13",
-  INTERVAL_MINUTES: 5,
+  CITY_ID: parseInt(process.env.CITY_ID || "1", 10),
+  ENGLISH: process.env.ENGLISH === "true",
+  DOCTORS: process.env.DOCTORS ? process.env.DOCTORS.split(",").map(Number).filter(Boolean) : [],
+  SKIP_IMMEDIATE: process.env.SKIP_IMMEDIATE !== "false",
+  SERVICE: process.env.SERVICE || "1765",
+  SERVICE_TYPE: process.env.SERVICE_TYPE || "13",
+  INTERVAL_MINUTES: parseFloat(process.env.INTERVAL_MINUTES || "5"),
 };
 
 function loadSettings() {

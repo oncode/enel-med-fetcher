@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: enel-med-fetcher
+    env: node
+    plan: free
+    buildCommand: npm install --production
+    startCommand: node server.js
+    envVars:
+      - key: LOGIN_ID
+        sync: false        # set manually in Render dashboard
+      - key: PASSWORD
+        sync: false        # set manually in Render dashboard
+      - key: SERVICE
+        value: "1765"
+      - key: SERVICE_TYPE
+        value: "13"
+      - key: CITY_ID
+        value: "1"
+      - key: INTERVAL_MINUTES
+        value: "5"
+      - key: SKIP_IMMEDIATE
+        value: "true"
+      - key: ENGLISH
+        value: "false"
