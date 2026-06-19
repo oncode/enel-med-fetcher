@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enel-Med Fetcher</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #273549;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* Status grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .stat-value { font-size: 15px; font-weight: 600; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.yellow { color: var(--yellow); }
+
+    .pulse {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--yellow);
+      margin-right: 6px;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Form */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+    .form-group:last-child { margin-bottom: 0; }
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    input[type="text"],
+    input[type="password"],
+    input[type="number"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 8px 10px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: var(--accent); }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-row:first-child { padding-top: 0; }
+    .toggle-label { font-size: 13px; }
+    .toggle-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 38px; height: 22px;
+      flex-shrink: 0;
+    }
+    .toggle input { display: none; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+      pointer-events: none;
+    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      transition: background .15s, opacity .15s;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; flex: 1; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: var(--border); }
+
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--green);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.error { background: var(--red); }
+
+    .interval-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .error-box {
+      background: #450a0a;
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      color: #fca5a5;
+      font-size: 12px;
+      margin-top: 10px;
+      padding: 8px 12px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Enel-Med Fetcher</h1>
+  <p class="subtitle">Monitors appointment availability on online.enel.pl</p>
+
+  <!-- Status -->
+  <div class="card">
+    <h2>Status</h2>
+    <div class="status-grid">
+      <div class="stat">
+        <div class="stat-label">State</div>
+        <div class="stat-value" id="s-running">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last result</div>
+        <div class="stat-value" id="s-result">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last run</div>
+        <div class="stat-value" id="s-last">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Next run</div>
+        <div class="stat-value" id="s-next">—</div>
+      </div>
+    </div>
+    <div id="s-error" class="error-box" style="display:none"></div>
+  </div>
+
+  <!-- Settings -->
+  <div class="card">
+    <h2>Settings</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="LOGIN_ID">Login ID</label>
+        <input type="text" id="LOGIN_ID" placeholder="your_login_id" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="PASSWORD">Password</label>
+        <input type="password" id="PASSWORD" placeholder="unchanged" autocomplete="current-password" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="SERVICE">Service ID</label>
+        <input type="text" id="SERVICE" placeholder="1765" />
+      </div>
+      <div class="form-group">
+        <label for="SERVICE_TYPE">Service Type ID</label>
+        <input type="text" id="SERVICE_TYPE" placeholder="13" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="CITY_ID">City ID</label>
+        <input type="number" id="CITY_ID" placeholder="1 (Warszawa)" min="1" />
+      </div>
+      <div class="form-group">
+        <label for="INTERVAL_MINUTES">Interval (minutes)</label>
+        <input type="number" id="INTERVAL_MINUTES" placeholder="5" min="1" step="1" />
+        <div class="interval-hint">How often to run in the background</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="DOCTORS">Doctor IDs (comma-separated, leave empty for all)</label>
+      <input type="text" id="DOCTORS" placeholder="e.g. 123, 456 — or leave empty" />
+    </div>
+
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">English-speaking doctors only</div>
+        <div class="toggle-desc">Limits results to doctors who speak English</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="ENGLISH" />
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Skip immediate appointments</div>
+        <div class="toggle-desc">Ignore slots within the next hour</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="SKIP_IMMEDIATE" />
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-save" onclick="saveSettings()">Save settings</button>
+      <button class="btn-secondary" id="btn-run" onclick="runNow()">Run now</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function fmt(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function showToast(msg, isError = false) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "toast show" + (isError ? " error" : "");
+    setTimeout(() => t.className = "toast", 2500);
+  }
+
+  async function loadStatus() {
+    try {
+      const s = await fetch("/api/status").then(r => r.json());
+
+      const runEl = document.getElementById("s-running");
+      if (s.isRunning) {
+        runEl.innerHTML = '<span class="pulse"></span>Running…';
+        runEl.className = "stat-value yellow";
+      } else {
+        runEl.textContent = "Idle";
+        runEl.className = "stat-value";
+      }
+
+      const resEl = document.getElementById("s-result");
+      if (s.lastRunError) {
+        resEl.textContent = "Error";
+        resEl.className = "stat-value red";
+      } else if (s.lastRunResult !== null && s.lastRunResult !== undefined) {
+        resEl.textContent = s.lastRunResult > 0 ? `${s.lastRunResult} slots found` : "No slots";
+        resEl.className = "stat-value " + (s.lastRunResult > 0 ? "green" : "");
+      } else {
+        resEl.textContent = "—";
+        resEl.className = "stat-value";
+      }
+
+      document.getElementById("s-last").textContent = fmt(s.lastRunTime);
+      document.getElementById("s-next").textContent = fmt(s.nextRunTime);
+
+      const errBox = document.getElementById("s-error");
+      if (s.lastRunError) {
+        errBox.textContent = s.lastRunError;
+        errBox.style.display = "";
+      } else {
+        errBox.style.display = "none";
+      }
+
+      document.getElementById("btn-run").disabled = s.isRunning;
+    } catch {}
+  }
+
+  async function loadSettings() {
+    try {
+      const s = await fetch("/api/settings").then(r => r.json());
+      document.getElementById("LOGIN_ID").value = s.LOGIN_ID || "";
+      document.getElementById("PASSWORD").value = "";   // never pre-fill password
+      document.getElementById("SERVICE").value = s.SERVICE || "";
+      document.getElementById("SERVICE_TYPE").value = s.SERVICE_TYPE || "";
+      document.getElementById("CITY_ID").value = s.CITY_ID ?? 1;
+      document.getElementById("INTERVAL_MINUTES").value = s.INTERVAL_MINUTES ?? 5;
+      document.getElementById("DOCTORS").value = Array.isArray(s.DOCTORS) ? s.DOCTORS.join(", ") : "";
+      document.getElementById("ENGLISH").checked = Boolean(s.ENGLISH);
+      document.getElementById("SKIP_IMMEDIATE").checked = Boolean(s.SKIP_IMMEDIATE);
+    } catch {}
+  }
+
+  async function saveSettings() {
+    const btn = document.getElementById("btn-save");
+    btn.disabled = true;
+    try {
+      const doctorsRaw = document.getElementById("DOCTORS").value.trim();
+      const doctors = doctorsRaw
+        ? doctorsRaw.split(",").map(s => s.trim()).filter(Boolean).map(Number)
+        : [];
+
+      const body = {
+        LOGIN_ID: document.getElementById("LOGIN_ID").value.trim(),
+        PASSWORD: document.getElementById("PASSWORD").value,
+        SERVICE: document.getElementById("SERVICE").value.trim(),
+        SERVICE_TYPE: document.getElementById("SERVICE_TYPE").value.trim(),
+        CITY_ID: parseInt(document.getElementById("CITY_ID").value, 10),
+        INTERVAL_MINUTES: parseFloat(document.getElementById("INTERVAL_MINUTES").value),
+        DOCTORS: doctors,
+        ENGLISH: document.getElementById("ENGLISH").checked,
+        SKIP_IMMEDIATE: document.getElementById("SKIP_IMMEDIATE").checked,
+      };
+
+      const resp = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (resp.ok) {
+        showToast("Settings saved");
+        document.getElementById("PASSWORD").value = "";
+        loadStatus();
+      } else {
+        showToast("Failed to save", true);
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function runNow() {
+    const btn = document.getElementById("btn-run");
+    btn.disabled = true;
+    try {
+      await fetch("/api/run");
+      showToast("Run started");
+    } finally {
+      setTimeout(() => { btn.disabled = false; }, 2000);
+    }
+  }
+
+  // Init
+  loadSettings();
+  loadStatus();
+  setInterval(loadStatus, 3000);
+</script>
+</body>
+</html>
