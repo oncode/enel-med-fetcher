@@ -313,6 +313,39 @@
       <button class="btn-secondary" id="btn-run" onclick="runNow()">Run now</button>
     </div>
   </div>
+
+  <!-- Email notifications -->
+  <div class="card">
+    <h2>Email notifications</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Send an email when new appointment slots appear. Leave blank to disable.</p>
+
+    <div class="form-group">
+      <label for="NOTIFY_EMAIL">Notify email address</label>
+      <input type="text" id="NOTIFY_EMAIL" placeholder="you@example.com" autocomplete="email" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="SMTP_HOST">SMTP host</label>
+        <input type="text" id="SMTP_HOST" placeholder="smtp.gmail.com" />
+      </div>
+      <div class="form-group">
+        <label for="SMTP_PORT">SMTP port</label>
+        <input type="text" id="SMTP_PORT" placeholder="587" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="SMTP_USER">SMTP user</label>
+        <input type="text" id="SMTP_USER" placeholder="you@gmail.com" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="SMTP_PASS">SMTP password / app password</label>
+        <input type="password" id="SMTP_PASS" placeholder="unchanged" autocomplete="current-password" />
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -383,6 +416,11 @@
       document.getElementById("DOCTORS").value = Array.isArray(s.DOCTORS) ? s.DOCTORS.join(", ") : "";
       document.getElementById("ENGLISH").checked = Boolean(s.ENGLISH);
       document.getElementById("SKIP_IMMEDIATE").checked = Boolean(s.SKIP_IMMEDIATE);
+      document.getElementById("NOTIFY_EMAIL").value = s.NOTIFY_EMAIL || "";
+      document.getElementById("SMTP_HOST").value = s.SMTP_HOST || "";
+      document.getElementById("SMTP_PORT").value = s.SMTP_PORT || "";
+      document.getElementById("SMTP_USER").value = s.SMTP_USER || "";
+      document.getElementById("SMTP_PASS").value = "";  // never pre-fill
     } catch {}
   }
 
@@ -405,6 +443,11 @@
         DOCTORS: doctors,
         ENGLISH: document.getElementById("ENGLISH").checked,
         SKIP_IMMEDIATE: document.getElementById("SKIP_IMMEDIATE").checked,
+        NOTIFY_EMAIL: document.getElementById("NOTIFY_EMAIL").value.trim(),
+        SMTP_HOST: document.getElementById("SMTP_HOST").value.trim(),
+        SMTP_PORT: document.getElementById("SMTP_PORT").value.trim(),
+        SMTP_USER: document.getElementById("SMTP_USER").value.trim(),
+        SMTP_PASS: document.getElementById("SMTP_PASS").value,
       };
 
       const resp = await fetch("/api/settings", {
@@ -415,6 +458,7 @@
       if (resp.ok) {
         showToast("Settings saved");
         document.getElementById("PASSWORD").value = "";
+        document.getElementById("SMTP_PASS").value = "";
         loadStatus();
       } else {
         showToast("Failed to save", true);

@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const nodemailer = require("nodemailer");
 const { run } = require("./index");
 
 const app = express();
@@ -17,6 +18,11 @@ const DEFAULT_SETTINGS = {
   SERVICE: process.env.SERVICE || "1765",
   SERVICE_TYPE: process.env.SERVICE_TYPE || "13",
   INTERVAL_MINUTES: parseFloat(process.env.INTERVAL_MINUTES || "5"),
+  NOTIFY_EMAIL: process.env.NOTIFY_EMAIL || "",
+  SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
+  SMTP_PORT: process.env.SMTP_PORT || "587",
+  SMTP_USER: process.env.SMTP_USER || "",
+  SMTP_PASS: process.env.SMTP_PASS || "",
 };
 
 function loadSettings() {
@@ -36,20 +42,63 @@ const status = {
   lastRunTime: null,
   lastRunResult: null,
   lastRunError: null,
+  lastNotifiedAt: null,
+  lastEmailError: null,
   isRunning: false,
   nextRunTime: null,
 };
 
 let intervalHandle = null;
 
+async function sendEmail(settings, foundCount) {
+  if (!settings.NOTIFY_EMAIL || !settings.SMTP_USER || !settings.SMTP_PASS) return;
+
+  const transporter = nodemailer.createTransport({
+    host: settings.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(settings.SMTP_PORT || "587", 10),
+    secure: false,
+    auth: { user: settings.SMTP_USER, pass: settings.SMTP_PASS },
+  });
+
+  const slotWord = foundCount === 1 ? "slot" : "slots";
+  await transporter.sendMail({
+    from: `"Enel-Med Fetcher" <${settings.SMTP_USER}>`,
+    to: settings.NOTIFY_EMAIL,
+    subject: `🏥 ${foundCount} appointment ${slotWord} available on Enel-Med!`,
+    html: `
+      <h2>📅 Appointment slots found!</h2>
+      <p>There are <strong>${foundCount}</strong> available appointment ${slotWord} on Enel-Med right now.</p>
+      <p><a href="https://online.enel.pl/Visit/New" style="background:#3b82f6;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block">Book now →</a></p>
+      <p style="color:#888;font-size:12px">Checked at ${new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" })} (Warsaw time)</p>
+    `,
+    text: `Found ${foundCount} appointment ${slotWord} on Enel-Med!\n\nBook now: https://online.enel.pl/Visit/New\n\nChecked at ${new Date().toLocaleString()}`,
+  });
+
+  console.log(`📧 Notification sent to ${settings.NOTIFY_EMAIL}`);
+  status.lastNotifiedAt = new Date().toISOString();
+  status.lastEmailError = null;
+}
+
 async function runOnce() {
   if (status.isRunning) return;
   status.isRunning = true;
   status.lastRunTime = new Date().toISOString();
   status.lastRunError = null;
+
+  const prevResult = status.lastRunResult;
+
   try {
     const settings = loadSettings();
-    status.lastRunResult = await run(settings);
+    const foundCount = await run(settings);
+    status.lastRunResult = foundCount;
+
+    // Send email only when slots newly appear (were 0/null, now > 0)
+    if (foundCount > 0 && !prevResult) {
+      sendEmail(settings, foundCount).catch(err => {
+        console.error("📧 Email error:", err.message);
+        status.lastEmailError = err.message;
+      });
+    }
   } catch (err) {
     console.error("❌ Error:", err.message);
     status.lastRunError = err.message;
@@ -79,13 +128,15 @@ function startInterval() {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/api/status", (req, res) => {
-  res.json(status);
-});
+app.get("/api/status", (req, res) => res.json(status));
 
 app.get("/api/settings", (req, res) => {
   const settings = loadSettings();
-  res.json({ ...settings, PASSWORD: settings.PASSWORD ? "••••••••" : "" });
+  res.json({
+    ...settings,
+    PASSWORD: settings.PASSWORD ? "••••••••" : "",
+    SMTP_PASS: settings.SMTP_PASS ? "••••••••" : "",
+  });
 });
 
 app.post("/api/settings", (req, res) => {
@@ -103,6 +154,11 @@ app.post("/api/settings", (req, res) => {
     SERVICE: String(body.SERVICE ?? current.SERVICE),
     SERVICE_TYPE: String(body.SERVICE_TYPE ?? current.SERVICE_TYPE),
     INTERVAL_MINUTES: parseFloat(body.INTERVAL_MINUTES) || current.INTERVAL_MINUTES,
+    NOTIFY_EMAIL: body.NOTIFY_EMAIL ?? current.NOTIFY_EMAIL,
+    SMTP_HOST: body.SMTP_HOST ?? current.SMTP_HOST,
+    SMTP_PORT: body.SMTP_PORT ?? current.SMTP_PORT,
+    SMTP_USER: body.SMTP_USER ?? current.SMTP_USER,
+    SMTP_PASS: (body.SMTP_PASS && body.SMTP_PASS !== "••••••••") ? body.SMTP_PASS : current.SMTP_PASS,
   };
 
   saveSettings(updated);
@@ -111,9 +167,7 @@ app.post("/api/settings", (req, res) => {
 });
 
 app.get("/api/run", async (req, res) => {
-  if (status.isRunning) {
-    return res.json({ message: "Already running" });
-  }
+  if (status.isRunning) return res.json({ message: "Already running" });
   runOnce().then(scheduleNext);
   res.json({ message: "Run started" });
 });
