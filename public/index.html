@@ -308,16 +308,8 @@
       </label>
     </div>
 
-    <div class="btn-row">
-      <button class="btn-primary" id="btn-save" onclick="saveSettings()">Save settings</button>
-      <button class="btn-secondary" id="btn-run" onclick="runNow()">Run now</button>
-    </div>
-  </div>
-
-  <!-- Email notifications -->
-  <div class="card">
-    <h2>Email notifications</h2>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Send an email when new appointment slots appear. Leave blank to disable.</p>
+    <div class="section-divider" style="border-top:1px solid var(--border);margin:16px 0 14px;"></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Email notifications — send an alert when new slots appear. Leave blank to disable.</p>
 
     <div class="form-group">
       <label for="NOTIFY_EMAIL">Notify email address</label>
@@ -344,6 +336,11 @@
         <label for="SMTP_PASS">SMTP password / app password</label>
         <input type="password" id="SMTP_PASS" placeholder="unchanged" autocomplete="current-password" />
       </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-save" onclick="saveSettings()">Save settings</button>
+      <button class="btn-secondary" id="btn-run" onclick="runNow()">Run now</button>
     </div>
   </div>
 </div>
