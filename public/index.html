@@ -450,7 +450,7 @@
 
   <!-- Masthead -->
   <header class="masthead">
-    <div class="eyebrow">Enel-Med · Warszawa</div>
+    <div class="eyebrow">Enel-Med · <span id="city-label">—</span></div>
     <h1>Appointment <span class="accent">Monitor</span></h1>
     <p class="lede">online.enel.pl — live availability watch</p>
   </header>
@@ -789,6 +789,8 @@
       const cities = await fetch("/api/options/cities").then(r => r.json());
       if (cities.error) throw new Error(cities.error);
       const chosen = setSelectOpts("CITY_ID", cities, "CityId", "CityName", preselectCityId, "— select city —");
+      const cityObj = cities.find(c => String(c.CityId) === String(chosen));
+      document.getElementById("city-label").textContent = cityObj ? cityObj.CityName : "—";
       if (chosen) await loadDepartments(chosen, preselectDeptIds, preselectTypeId, preselectServiceId);
     } catch (e) {
       el.innerHTML = "";
@@ -857,6 +859,9 @@
   }
 
   document.getElementById("CITY_ID").addEventListener("change", function () {
+    const sel = document.getElementById("CITY_ID");
+    const cityName = sel.options[sel.selectedIndex]?.text || "—";
+    document.getElementById("city-label").textContent = this.value ? cityName : "—";
     if (this.value) loadDepartments(this.value, null, null, null);
     else { resetDeptList("Select a city first"); resetSelect("SERVICE_TYPE", "Select a city first"); resetSelect("SERVICE", "Select a category first"); }
   });
@@ -884,7 +889,7 @@
       document.getElementById("SMTP_PASS").value = "";
       alertsArmed = Boolean(s.NOTIFY_EMAIL && s.SMTP_USER);
       // cascade selects with saved values
-      await loadCities(s.CITY_ID, s.DEPARTMENTS || [], s.SERVICE_TYPE, s.SERVICE);
+      await loadCities(s.CITY_ID, s.DEPARTMENTS || [], null, null);
     } catch {}
   }
 
