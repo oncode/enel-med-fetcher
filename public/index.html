@@ -809,7 +809,7 @@
         cb.addEventListener("change", updateDoctorCount);
         const span = document.createElement("span");
         span.className = "doctor-name";
-        span.textContent = d.DoctorName || `${d.FirstName || ""} ${d.LastName || ""}`.trim() || `ID ${d.DoctorId}`;
+        span.textContent = (d.DoctorData || "").trim() || `${d.SurName || ""} ${d.Name || ""}`.trim() || `ID ${d.DoctorId}`;
         lbl.appendChild(cb);
         lbl.appendChild(span);
         list.appendChild(lbl);
