@@ -276,11 +276,6 @@ app.get("/api/options/doctors", async (req, res) => {
   }
 });
 
-app.post("/api/options/invalidate", (req, res) => {
-  invalidateEnelClient();
-  res.json({ ok: true });
-});
-
 app.get("/api/run", async (req, res) => {
   if (status.isRunning) return res.json({ message: "Already running" });
   runOnce().then(scheduleNext);

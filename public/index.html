@@ -945,14 +945,11 @@
     else resetDoctorList("Select a service first");
   });
 
-  document.getElementById("ENGLISH").addEventListener("change", async function () {
-    await fetch("/api/options/invalidate", { method: "POST" });
-    const cityId = document.getElementById("CITY_ID").value;
-    if (!cityId) return;
-    const deptIds = [...document.querySelectorAll(".dept-checkbox:checked")].map(el => parseInt(el.value, 10));
-    const typeId = document.getElementById("SERVICE_TYPE").value || null;
-    const serviceId = document.getElementById("SERVICE").value || null;
-    await loadCities(cityId, deptIds, typeId, serviceId);
+  document.getElementById("ENGLISH").addEventListener("change", function () {
+    const serviceId = document.getElementById("SERVICE").value;
+    const deptIds = getCheckedDeptIds();
+    if (serviceId && deptIds) loadDoctors(serviceId, deptIds);
+    else resetDoctorList("Select a service first");
   });
 
   // ── Settings load / save ─────────────────────
