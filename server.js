@@ -215,10 +215,7 @@ app.get("/api/options/departments", async (req, res) => {
   if (!cityId) return res.status(400).json({ error: "cityId required" });
   try {
     const client = await getEnelClient();
-    const settings = loadSettings();
-    const params = { id: cityId };
-    if (settings.SERVICE) params.serviceLock = settings.SERVICE;
-    const r = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params });
+    const r = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
     res.json(r.data);
   } catch (err) {
     handleProxyError(err, res);
@@ -259,13 +256,14 @@ app.get("/api/options/services", async (req, res) => {
 });
 
 app.get("/api/options/doctors", async (req, res) => {
-  const { serviceId, departmentIds } = req.query;
+  const { serviceId, departmentIds, english } = req.query;
   if (!serviceId || !departmentIds) return res.status(400).json({ error: "serviceId and departmentIds required" });
   const depIds = departmentIds.split(",").map(Number).filter(Boolean);
   try {
     const client = await getEnelClient();
     const settings = loadSettings();
-    const params = new URLSearchParams({ ServiceId: serviceId, ForeignLanguage: Boolean(settings.ENGLISH) });
+    const foreignLanguage = english !== undefined ? english === "true" : Boolean(settings.ENGLISH);
+    const params = new URLSearchParams({ ServiceId: serviceId, ForeignLanguage: foreignLanguage });
     depIds.forEach(id => params.append("DepartmentsId[]", id));
     const resp = await client.post(
       "/api/EnelmedApi/GetDoctorsByDepartmentIdAndByServiceId",

@@ -510,6 +510,20 @@
       </div>
     </div>
 
+    <div class="switches">
+      <div class="switch-row">
+        <div>
+          <div class="t-name">English-speaking only</div>
+          <div class="t-desc">limit results to English-speaking doctors</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="ENGLISH" />
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
+      </div>
+    </div>
+
     <div class="field">
       <label for="CITY_ID">City</label>
       <select id="CITY_ID">
@@ -564,18 +578,6 @@
     </div>
 
     <div class="switches">
-      <div class="switch-row">
-        <div>
-          <div class="t-name">English-speaking only</div>
-          <div class="t-desc">limit results to English-speaking doctors</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="ENGLISH" />
-          <span class="track"></span>
-          <span class="thumb"></span>
-        </label>
-      </div>
-
       <div class="switch-row">
         <div>
           <div class="t-name">Skip immediate slots</div>
@@ -799,7 +801,8 @@
   async function loadDoctors(serviceId, departmentIds) {
     resetDoctorList("Loading…");
     try {
-      const docs = await fetch(`/api/options/doctors?serviceId=${serviceId}&departmentIds=${departmentIds}`).then(r => r.json());
+      const english = document.getElementById("ENGLISH").checked;
+      const docs = await fetch(`/api/options/doctors?serviceId=${serviceId}&departmentIds=${departmentIds}&english=${english}`).then(r => r.json());
       if (docs.error) throw new Error(docs.error);
       const list = document.getElementById("doctor-list");
       if (docs.length === 0) {
@@ -939,6 +942,13 @@
   document.getElementById("SERVICE").addEventListener("change", function () {
     const deptIds = getCheckedDeptIds();
     if (deptIds && this.value) loadDoctors(this.value, deptIds);
+    else resetDoctorList("Select a service first");
+  });
+
+  document.getElementById("ENGLISH").addEventListener("change", function () {
+    const serviceId = document.getElementById("SERVICE").value;
+    const deptIds = getCheckedDeptIds();
+    if (serviceId && deptIds) loadDoctors(serviceId, deptIds);
     else resetDoctorList("Select a service first");
   });
 
