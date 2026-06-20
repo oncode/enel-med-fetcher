@@ -112,6 +112,7 @@ async function run(settings = {}) {
   const {
     CITY_ID = 1,
     ENGLISH = false,
+    DEPARTMENTS = [],
     DOCTORS = [],
     SKIP_IMMEDIATE = true,
     SERVICE = "1765",
@@ -130,7 +131,10 @@ async function run(settings = {}) {
   const departmentsResp = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", {
     params: { id: CITY_ID, serviceLock: SERVICE }
   });
-  const departments = departmentsResp.data.map(d => d.DepartmentId);
+  const allDepartmentIds = departmentsResp.data.map(d => d.DepartmentId);
+  const departments = DEPARTMENTS.length > 0
+    ? allDepartmentIds.filter(id => DEPARTMENTS.includes(id))
+    : allDepartmentIds;
   console.log("🏥 Departments:", departments);
 
   // GET DOCTORS

@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS = {
   PASSWORD: process.env.PASSWORD || "",
   CITY_ID: parseInt(process.env.CITY_ID || "1", 10),
   ENGLISH: process.env.ENGLISH === "true",
+  DEPARTMENTS: process.env.DEPARTMENTS ? process.env.DEPARTMENTS.split(",").map(Number).filter(Boolean) : [],
   DOCTORS: process.env.DOCTORS ? process.env.DOCTORS.split(",").map(Number).filter(Boolean) : [],
   SKIP_IMMEDIATE: process.env.SKIP_IMMEDIATE !== "false",
   SERVICE: process.env.SERVICE || "1765",
@@ -167,6 +168,7 @@ app.post("/api/settings", (req, res) => {
     PASSWORD: (body.PASSWORD && body.PASSWORD !== "••••••••") ? body.PASSWORD : current.PASSWORD,
     CITY_ID: parseInt(body.CITY_ID, 10) || current.CITY_ID,
     ENGLISH: Boolean(body.ENGLISH),
+    DEPARTMENTS: Array.isArray(body.DEPARTMENTS) ? body.DEPARTMENTS : current.DEPARTMENTS,
     DOCTORS: Array.isArray(body.DOCTORS) ? body.DOCTORS : current.DOCTORS,
     SKIP_IMMEDIATE: Boolean(body.SKIP_IMMEDIATE),
     SERVICE: String(body.SERVICE ?? current.SERVICE),
@@ -198,13 +200,26 @@ app.get("/api/options/cities", async (req, res) => {
   }
 });
 
-app.get("/api/options/service-types", async (req, res) => {
+app.get("/api/options/departments", async (req, res) => {
   const { cityId } = req.query;
   if (!cityId) return res.status(400).json({ error: "cityId required" });
   try {
     const client = await getEnelClient();
-    const depsResp = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
-    const depIds = depsResp.data.map(d => d.DepartmentId);
+    const r = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
+    res.json(r.data);
+  } catch (err) {
+    _enelClient = null;
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// departmentIds: comma-separated list of department IDs from the UI
+app.get("/api/options/service-types", async (req, res) => {
+  const { departmentIds } = req.query;
+  if (!departmentIds) return res.status(400).json({ error: "departmentIds required" });
+  const depIds = departmentIds.split(",").map(Number).filter(Boolean);
+  try {
+    const client = await getEnelClient();
     const typesResp = await client.post(
       "/api/EnelmedApi/GetServiceTypesByDepartmentId",
       JSON.stringify(depIds),
@@ -218,12 +233,11 @@ app.get("/api/options/service-types", async (req, res) => {
 });
 
 app.get("/api/options/services", async (req, res) => {
-  const { cityId, typeId } = req.query;
-  if (!cityId || !typeId) return res.status(400).json({ error: "cityId and typeId required" });
+  const { typeId, departmentIds } = req.query;
+  if (!typeId || !departmentIds) return res.status(400).json({ error: "typeId and departmentIds required" });
+  const depIds = departmentIds.split(",").map(Number).filter(Boolean);
   try {
     const client = await getEnelClient();
-    const depsResp = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
-    const depIds = depsResp.data.map(d => d.DepartmentId);
     const params = new URLSearchParams({ typeId });
     depIds.forEach(id => params.append("departments", id));
     const servicesResp = await client.get(`/api/EnelmedApi/GetServicesByTypeDepartmentId?${params}`);

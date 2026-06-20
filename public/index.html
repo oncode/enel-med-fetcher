@@ -256,6 +256,57 @@
     select option { background: #0c2228; }
     .hint { font-family: var(--mono); font-size: 10px; color: var(--flat-dim); letter-spacing: .02em; }
 
+    /* department checkbox list */
+    .dept-list {
+      background: var(--ink2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      max-height: 164px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+      padding: 4px;
+      transition: border-color .15s;
+    }
+    .dept-list:focus-within { border-color: var(--phosphor); }
+    .dept-placeholder {
+      display: block;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--flat-dim);
+    }
+    .dept-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .dept-item:hover { background: rgba(52,224,161,.06); }
+    .dept-item input[type="checkbox"] {
+      width: 14px; height: 14px;
+      flex-shrink: 0;
+      accent-color: var(--phosphor);
+      cursor: pointer;
+      background: var(--ink2);
+      margin: 0;
+    }
+    .dept-name {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--paper);
+    }
+    .dept-count {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--flat-dim);
+      margin-left: 4px;
+    }
+
     /* toggles */
     .switches { display: flex; flex-direction: column; }
     .switch-row {
@@ -464,6 +515,13 @@
       <select id="CITY_ID">
         <option value="">Loading cities…</option>
       </select>
+    </div>
+
+    <div class="field">
+      <label>Departments <span class="dept-count" id="dept-count"></span></label>
+      <div class="dept-list" id="dept-list">
+        <span class="dept-placeholder">Select a city first</span>
+      </div>
     </div>
 
     <div class="grid2">
@@ -695,7 +753,34 @@
     el.disabled = true;
   }
 
-  async function loadCities(preselectCityId, preselectTypeId, preselectServiceId) {
+  function resetDeptList(msg) {
+    const list = document.getElementById("dept-list");
+    list.innerHTML = `<span class="dept-placeholder">${msg}</span>`;
+    document.getElementById("dept-count").textContent = "";
+  }
+
+  function getCheckedDeptIds() {
+    return [...document.querySelectorAll(".dept-checkbox:checked")].map(el => el.value).join(",");
+  }
+
+  function updateDeptCount() {
+    const total = document.querySelectorAll(".dept-checkbox").length;
+    const checked = document.querySelectorAll(".dept-checkbox:checked").length;
+    document.getElementById("dept-count").textContent = total ? `(${checked}/${total})` : "";
+  }
+
+  let _deptDebounce = null;
+  function onDeptChange() {
+    updateDeptCount();
+    clearTimeout(_deptDebounce);
+    _deptDebounce = setTimeout(() => {
+      const ids = getCheckedDeptIds();
+      if (ids) loadServiceTypes(ids, null, null);
+      else { resetSelect("SERVICE_TYPE", "Select departments first"); resetSelect("SERVICE", "Select a category first"); }
+    }, 350);
+  }
+
+  async function loadCities(preselectCityId, preselectDeptIds, preselectTypeId, preselectServiceId) {
     const el = document.getElementById("CITY_ID");
     el.innerHTML = "";
     el.appendChild(new Option("Loading…", ""));
@@ -704,7 +789,7 @@
       const cities = await fetch("/api/options/cities").then(r => r.json());
       if (cities.error) throw new Error(cities.error);
       const chosen = setSelectOpts("CITY_ID", cities, "CityId", "CityName", preselectCityId, "— select city —");
-      if (chosen) await loadServiceTypes(chosen, preselectTypeId, preselectServiceId);
+      if (chosen) await loadDepartments(chosen, preselectDeptIds, preselectTypeId, preselectServiceId);
     } catch (e) {
       el.innerHTML = "";
       el.appendChild(new Option("Failed to load cities", ""));
@@ -712,24 +797,57 @@
     }
   }
 
-  async function loadServiceTypes(cityId, preselectTypeId, preselectServiceId) {
+  async function loadDepartments(cityId, savedDeptIds, preselectTypeId, preselectServiceId) {
+    resetDeptList("Loading…");
     resetSelect("SERVICE_TYPE", "Loading…");
     resetSelect("SERVICE", "Select a category first");
     try {
-      const types = await fetch(`/api/options/service-types?cityId=${cityId}`).then(r => r.json());
+      const depts = await fetch(`/api/options/departments?cityId=${cityId}`).then(r => r.json());
+      if (depts.error) throw new Error(depts.error);
+      const list = document.getElementById("dept-list");
+      list.innerHTML = "";
+      depts.forEach(d => {
+        const lbl = document.createElement("label");
+        lbl.className = "dept-item";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "dept-checkbox";
+        cb.value = d.DepartmentId;
+        // pre-check saved selection, or all by default
+        cb.checked = !savedDeptIds || savedDeptIds.length === 0 || savedDeptIds.includes(d.DepartmentId);
+        cb.addEventListener("change", onDeptChange);
+        const span = document.createElement("span");
+        span.className = "dept-name";
+        span.textContent = d.DepartmentName;
+        lbl.appendChild(cb);
+        lbl.appendChild(span);
+        list.appendChild(lbl);
+      });
+      updateDeptCount();
+      await loadServiceTypes(getCheckedDeptIds(), preselectTypeId, preselectServiceId);
+    } catch (e) {
+      resetDeptList("Failed to load departments");
+    }
+  }
+
+  async function loadServiceTypes(departmentIds, preselectTypeId, preselectServiceId) {
+    resetSelect("SERVICE_TYPE", "Loading…");
+    resetSelect("SERVICE", "Select a category first");
+    try {
+      const types = await fetch(`/api/options/service-types?departmentIds=${departmentIds}`).then(r => r.json());
       if (types.error) throw new Error(types.error);
       const chosen = setSelectOpts("SERVICE_TYPE", types, "TypeId", "TypeName", preselectTypeId, "— select category —");
-      if (chosen) await loadServices(cityId, chosen, preselectServiceId);
+      if (chosen) await loadServices(departmentIds, chosen, preselectServiceId);
     } catch (e) {
       resetSelect("SERVICE_TYPE", "Failed to load categories");
       document.getElementById("SERVICE_TYPE").disabled = false;
     }
   }
 
-  async function loadServices(cityId, typeId, preselectServiceId) {
+  async function loadServices(departmentIds, typeId, preselectServiceId) {
     resetSelect("SERVICE", "Loading…");
     try {
-      const svcs = await fetch(`/api/options/services?cityId=${cityId}&typeId=${typeId}`).then(r => r.json());
+      const svcs = await fetch(`/api/options/services?typeId=${typeId}&departmentIds=${departmentIds}`).then(r => r.json());
       if (svcs.error) throw new Error(svcs.error);
       setSelectOpts("SERVICE", svcs, "ServiceId", "Name", preselectServiceId, "— select service —");
     } catch (e) {
@@ -739,13 +857,13 @@
   }
 
   document.getElementById("CITY_ID").addEventListener("change", function () {
-    if (this.value) loadServiceTypes(this.value, null, null);
-    else { resetSelect("SERVICE_TYPE", "Select a city first"); resetSelect("SERVICE", "Select a category first"); }
+    if (this.value) loadDepartments(this.value, null, null, null);
+    else { resetDeptList("Select a city first"); resetSelect("SERVICE_TYPE", "Select a city first"); resetSelect("SERVICE", "Select a category first"); }
   });
 
   document.getElementById("SERVICE_TYPE").addEventListener("change", function () {
-    const cityId = document.getElementById("CITY_ID").value;
-    if (cityId && this.value) loadServices(cityId, this.value, null);
+    const deptIds = getCheckedDeptIds();
+    if (deptIds && this.value) loadServices(deptIds, this.value, null);
     else resetSelect("SERVICE", "Select a category first");
   });
 
@@ -766,7 +884,7 @@
       document.getElementById("SMTP_PASS").value = "";
       alertsArmed = Boolean(s.NOTIFY_EMAIL && s.SMTP_USER);
       // cascade selects with saved values
-      await loadCities(s.CITY_ID, s.SERVICE_TYPE, s.SERVICE);
+      await loadCities(s.CITY_ID, s.DEPARTMENTS || [], s.SERVICE_TYPE, s.SERVICE);
     } catch {}
   }
 
@@ -787,6 +905,7 @@
         CITY_ID: parseInt(document.getElementById("CITY_ID").value, 10),
         INTERVAL_MINUTES: parseFloat(document.getElementById("INTERVAL_MINUTES").value),
         DOCTORS: doctors,
+        DEPARTMENTS: [...document.querySelectorAll(".dept-checkbox:checked")].map(el => parseInt(el.value, 10)),
         ENGLISH: document.getElementById("ENGLISH").checked,
         SKIP_IMMEDIATE: document.getElementById("SKIP_IMMEDIATE").checked,
         NOTIFY_EMAIL: document.getElementById("NOTIFY_EMAIL").value.trim(),
