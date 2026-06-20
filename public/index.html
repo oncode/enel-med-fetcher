@@ -755,7 +755,7 @@
     if (placeholder) el.appendChild(new Option(placeholder, ""));
     opts.forEach(o => el.appendChild(new Option(o[labelKey], o[valKey])));
     el.disabled = false;
-    if (preselect) el.value = String(preselect);
+    if (preselect != null) el.value = String(preselect);
     return el.value;
   }
 
@@ -815,7 +815,7 @@
         cb.type = "checkbox";
         cb.className = "doctor-checkbox";
         cb.value = d.DoctorId;
-        cb.checked = _savedDoctorIds.length > 0 && _savedDoctorIds.includes(d.DoctorId);
+        cb.checked = _savedDoctorIds.length > 0 && _savedDoctorIds.map(Number).includes(Number(d.DoctorId));
         cb.addEventListener("change", updateDoctorCount);
         const span = document.createElement("span");
         span.className = "doctor-name";
@@ -977,7 +977,13 @@
         INTERVAL_MINUTES: parseFloat(document.getElementById("INTERVAL_MINUTES").value),
         VISIT_WEEKS: parseInt(document.getElementById("VISIT_WEEKS").value, 10),
         DOCTORS: [...document.querySelectorAll(".doctor-checkbox:checked")].map(el => parseInt(el.value, 10)),
-        DEPARTMENTS: [...document.querySelectorAll(".dept-checkbox:checked")].map(el => parseInt(el.value, 10)),
+        DEPARTMENTS: (() => {
+          const all = document.querySelectorAll(".dept-checkbox");
+          const checked = document.querySelectorAll(".dept-checkbox:checked");
+          return all.length > 0 && all.length === checked.length
+            ? []
+            : [...checked].map(el => parseInt(el.value, 10));
+        })(),
         ENGLISH: document.getElementById("ENGLISH").checked,
         SKIP_IMMEDIATE: document.getElementById("SKIP_IMMEDIATE").checked,
         NOTIFY_EMAIL: document.getElementById("NOTIFY_EMAIL").value.trim(),

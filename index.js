@@ -89,7 +89,7 @@ async function createEnelClient(settings = {}) {
   const loginPage = await client.get("/Account/Login");
   const csrf = extractCsrf(loginPage.data);
 
-  await client.post(
+  const loginResp = await client.post(
     "/Account/Login",
     new URLSearchParams({
       "__RequestVerificationToken": csrf,
@@ -103,6 +103,11 @@ async function createEnelClient(settings = {}) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" }
     }
   );
+
+  const $login = cheerio.load(loginResp.data);
+  if ($login('input[name="Login"]').length > 0) {
+    throw new Error("Authentication failed — check LOGIN_ID and PASSWORD");
+  }
 
   return client;
 }

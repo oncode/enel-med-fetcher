@@ -48,9 +48,11 @@ const status = {
   lastEmailError: null,
   isRunning: false,
   nextRunTime: null,
+  hasNotifiedSlots: false,
 };
 
 let intervalHandle = null;
+let _intervalMs = 5 * 60 * 1000;
 
 async function sendEmail(settings, foundCount) {
   if (!settings.NOTIFY_EMAIL || !settings.SMTP_USER || !settings.SMTP_PASS) return;
@@ -94,12 +96,16 @@ async function runOnce() {
     const foundCount = await run(settings);
     status.lastRunResult = foundCount;
 
-    // Send email only when slots newly appear (were 0/null, now > 0)
-    if (foundCount > 0 && !prevResult) {
-      sendEmail(settings, foundCount).catch(err => {
-        console.error("📧 Email error:", err.message);
-        status.lastEmailError = err.message;
-      });
+    if (foundCount > 0) {
+      if (!status.hasNotifiedSlots) {
+        status.hasNotifiedSlots = true;
+        sendEmail(settings, foundCount).catch(err => {
+          console.error("📧 Email error:", err.message);
+          status.lastEmailError = err.message;
+        });
+      }
+    } else {
+      status.hasNotifiedSlots = false;
     }
   } catch (err) {
     console.error("❌ Error:", err.message);
@@ -111,20 +117,18 @@ async function runOnce() {
 }
 
 function scheduleNext() {
-  const settings = loadSettings();
-  const ms = Math.max(1, settings.INTERVAL_MINUTES) * 60 * 1000;
-  status.nextRunTime = new Date(Date.now() + ms).toISOString();
+  status.nextRunTime = new Date(Date.now() + _intervalMs).toISOString();
 }
 
 function startInterval() {
   if (intervalHandle) clearInterval(intervalHandle);
   const settings = loadSettings();
-  const ms = Math.max(1, settings.INTERVAL_MINUTES) * 60 * 1000;
-  status.nextRunTime = new Date(Date.now() + ms).toISOString();
+  _intervalMs = Math.max(1, settings.INTERVAL_MINUTES) * 60 * 1000;
+  status.nextRunTime = new Date(Date.now() + _intervalMs).toISOString();
   intervalHandle = setInterval(async () => {
     await runOnce();
     scheduleNext();
-  }, ms);
+  }, _intervalMs);
 }
 
 // ── Enel-Med session cache (shared across option proxy routes) ──
@@ -172,8 +176,8 @@ app.post("/api/settings", (req, res) => {
     DEPARTMENTS: Array.isArray(body.DEPARTMENTS) ? body.DEPARTMENTS : current.DEPARTMENTS,
     DOCTORS: Array.isArray(body.DOCTORS) ? body.DOCTORS : current.DOCTORS,
     SKIP_IMMEDIATE: Boolean(body.SKIP_IMMEDIATE),
-    SERVICE: String(body.SERVICE ?? current.SERVICE),
-    SERVICE_TYPE: String(body.SERVICE_TYPE ?? current.SERVICE_TYPE),
+    SERVICE: body.SERVICE || current.SERVICE,
+    SERVICE_TYPE: body.SERVICE_TYPE || current.SERVICE_TYPE,
     VISIT_WEEKS: parseInt(body.VISIT_WEEKS, 10) || current.VISIT_WEEKS,
     INTERVAL_MINUTES: parseFloat(body.INTERVAL_MINUTES) || current.INTERVAL_MINUTES,
     NOTIFY_EMAIL: body.NOTIFY_EMAIL ?? current.NOTIFY_EMAIL,
@@ -191,14 +195,18 @@ app.post("/api/settings", (req, res) => {
 
 // ── Option proxy routes (cascade selects in UI) ──
 
+function handleProxyError(err, res) {
+  invalidateEnelClient();
+  res.status(500).json({ error: err.message });
+}
+
 app.get("/api/options/cities", async (req, res) => {
   try {
     const client = await getEnelClient();
     const r = await client.get("/api/EnelmedApi/GetAllCities");
     res.json(r.data);
   } catch (err) {
-    _enelClient = null;
-    res.status(500).json({ error: err.message });
+    handleProxyError(err, res);
   }
 });
 
@@ -207,11 +215,13 @@ app.get("/api/options/departments", async (req, res) => {
   if (!cityId) return res.status(400).json({ error: "cityId required" });
   try {
     const client = await getEnelClient();
-    const r = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
+    const settings = loadSettings();
+    const params = { id: cityId };
+    if (settings.SERVICE) params.serviceLock = settings.SERVICE;
+    const r = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params });
     res.json(r.data);
   } catch (err) {
-    _enelClient = null;
-    res.status(500).json({ error: err.message });
+    handleProxyError(err, res);
   }
 });
 
@@ -229,8 +239,7 @@ app.get("/api/options/service-types", async (req, res) => {
     );
     res.json(typesResp.data);
   } catch (err) {
-    _enelClient = null;
-    res.status(500).json({ error: err.message });
+    handleProxyError(err, res);
   }
 });
 
@@ -245,8 +254,7 @@ app.get("/api/options/services", async (req, res) => {
     const servicesResp = await client.get(`/api/EnelmedApi/GetServicesByTypeDepartmentId?${params}`);
     res.json(servicesResp.data);
   } catch (err) {
-    _enelClient = null;
-    res.status(500).json({ error: err.message });
+    handleProxyError(err, res);
   }
 });
 
@@ -256,7 +264,8 @@ app.get("/api/options/doctors", async (req, res) => {
   const depIds = departmentIds.split(",").map(Number).filter(Boolean);
   try {
     const client = await getEnelClient();
-    const params = new URLSearchParams({ ServiceId: serviceId, ForeignLanguage: false });
+    const settings = loadSettings();
+    const params = new URLSearchParams({ ServiceId: serviceId, ForeignLanguage: Boolean(settings.ENGLISH) });
     depIds.forEach(id => params.append("DepartmentsId[]", id));
     const resp = await client.post(
       "/api/EnelmedApi/GetDoctorsByDepartmentIdAndByServiceId",
@@ -265,8 +274,7 @@ app.get("/api/options/doctors", async (req, res) => {
     );
     res.json(resp.data);
   } catch (err) {
-    _enelClient = null;
-    res.status(500).json({ error: err.message });
+    handleProxyError(err, res);
   }
 });
 
