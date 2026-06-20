@@ -384,6 +384,12 @@
       border-color: var(--line);
     }
     .btn-run:hover:not(:disabled) { border-color: var(--phosphor); color: var(--phosphor); }
+    .btn-connect {
+      background: var(--phosphor);
+      color: #042018;
+      box-shadow: 0 0 24px -8px var(--phosphor);
+    }
+    .btn-connect:hover:not(:disabled) { box-shadow: 0 0 30px -6px var(--phosphor); }
     button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(52,224,161,.3); }
 
     /* error box */
@@ -497,7 +503,7 @@
 
   <!-- Parameters -->
   <div class="panel">
-    <div class="section-head">Parameters</div>
+    <div class="section-head">1 — Access</div>
 
     <div class="grid2">
       <div class="field">
@@ -509,6 +515,14 @@
         <input type="password" id="PASSWORD" placeholder="unchanged" autocomplete="current-password" />
       </div>
     </div>
+
+    <div class="actions">
+      <button class="btn-connect" id="btn-connect" onclick="connectAccount()">Connect</button>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section-head">2 — Configuration</div>
 
     <div class="field">
       <label for="CITY_ID">City</label>
@@ -624,7 +638,7 @@
     </div>
 
     <div class="actions">
-      <button class="btn-save" id="btn-save" onclick="saveSettings()">Save parameters</button>
+      <button class="btn-save" id="btn-save" onclick="saveSettings()">Save configuration</button>
       <button class="btn-run" id="btn-run" onclick="runNow()">Run scan now</button>
     </div>
   </div>
@@ -974,13 +988,38 @@
     } catch {}
   }
 
-  async function saveSettings() {
-    const btn = document.getElementById("btn-save");
+  async function connectAccount() {
+    const btn = document.getElementById("btn-connect");
     btn.disabled = true;
     try {
       const body = {
         LOGIN_ID: document.getElementById("LOGIN_ID").value.trim(),
         PASSWORD: document.getElementById("PASSWORD").value,
+      };
+      const resp = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (resp.ok) {
+        showToast("Connected");
+        document.getElementById("PASSWORD").value = "";
+        await loadCities(null, [], null, null);
+      } else {
+        showToast("Connection failed", true);
+      }
+    } catch {
+      showToast("Connection failed", true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function saveSettings() {
+    const btn = document.getElementById("btn-save");
+    btn.disabled = true;
+    try {
+      const body = {
         SERVICE: document.getElementById("SERVICE").value.trim(),
         SERVICE_TYPE: document.getElementById("SERVICE_TYPE").value.trim(),
         CITY_ID: parseInt(document.getElementById("CITY_ID").value, 10),
@@ -1009,8 +1048,7 @@
         body: JSON.stringify(body),
       });
       if (resp.ok) {
-        showToast("Parameters saved");
-        document.getElementById("PASSWORD").value = "";
+        showToast("Configuration saved");
         document.getElementById("SMTP_PASS").value = "";
         alertsArmed = Boolean(body.NOTIFY_EMAIL && body.SMTP_USER);
         loadStatus();
