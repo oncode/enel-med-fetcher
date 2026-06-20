@@ -195,6 +195,9 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
     .section-head {
       font-family: var(--mono);
@@ -206,7 +209,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 16px;
     }
     .section-head::before {
       content: "";
@@ -219,8 +221,7 @@
     .section-head.muted::before { background: var(--flat); box-shadow: none; }
 
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
-    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
-    .field:last-child { margin-bottom: 0; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
     .field label {
       font-family: var(--mono);
       font-size: 10.5px;
@@ -245,14 +246,17 @@
     .hint { font-family: var(--mono); font-size: 10px; color: var(--flat-dim); letter-spacing: .02em; }
 
     /* toggles */
+    .switches { display: flex; flex-direction: column; }
     .switch-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding: 13px 0;
-      border-top: 1px solid var(--line);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
     }
+    .switch-row:first-child { padding-top: 0; }
+    .switch-row:last-child { border-bottom: none; padding-bottom: 0; }
     .switch-row .t-name { font-size: 13.5px; font-weight: 500; }
     .switch-row .t-desc { font-family: var(--mono); font-size: 10.5px; color: var(--flat); margin-top: 2px; letter-spacing: .01em; }
     .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
@@ -279,19 +283,18 @@
     .divider {
       border: none;
       border-top: 1px dashed var(--line);
-      margin: 20px 0;
+      margin: 4px 0;
     }
     .note {
       font-family: var(--mono);
       font-size: 10.5px;
       color: var(--flat);
       letter-spacing: .01em;
-      margin-bottom: 15px;
       line-height: 1.6;
     }
 
     /* buttons */
-    .actions { display: flex; gap: 11px; margin-top: 20px; }
+    .actions { display: flex; gap: 11px; margin-top: 6px; }
     button {
       font-family: var(--mono);
       font-size: 12px;
@@ -473,28 +476,30 @@
       <input type="text" id="DOCTORS" placeholder="123, 456 — or leave empty" />
     </div>
 
-    <div class="switch-row">
-      <div>
-        <div class="t-name">English-speaking only</div>
-        <div class="t-desc">limit results to English-speaking doctors</div>
+    <div class="switches">
+      <div class="switch-row">
+        <div>
+          <div class="t-name">English-speaking only</div>
+          <div class="t-desc">limit results to English-speaking doctors</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="ENGLISH" />
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
       </div>
-      <label class="switch">
-        <input type="checkbox" id="ENGLISH" />
-        <span class="track"></span>
-        <span class="thumb"></span>
-      </label>
-    </div>
 
-    <div class="switch-row">
-      <div>
-        <div class="t-name">Skip immediate slots</div>
-        <div class="t-desc">ignore openings within the next hour</div>
+      <div class="switch-row">
+        <div>
+          <div class="t-name">Skip immediate slots</div>
+          <div class="t-desc">ignore openings within the next hour</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="SKIP_IMMEDIATE" />
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
       </div>
-      <label class="switch">
-        <input type="checkbox" id="SKIP_IMMEDIATE" />
-        <span class="track"></span>
-        <span class="thumb"></span>
-      </label>
     </div>
 
     <hr class="divider" />
