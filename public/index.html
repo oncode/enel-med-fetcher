@@ -547,6 +547,17 @@
       <span class="hint">leave all unchecked to monitor all doctors</span>
     </div>
 
+    <div class="grid2">
+      <div class="field">
+        <label for="VISIT_DATE_FROM">From date</label>
+        <input type="date" id="VISIT_DATE_FROM" />
+      </div>
+      <div class="field">
+        <label for="VISIT_DATE_TO">To date</label>
+        <input type="date" id="VISIT_DATE_TO" />
+      </div>
+    </div>
+
     <div class="field">
       <label for="INTERVAL_MINUTES">Check every (min)</label>
       <input type="number" id="INTERVAL_MINUTES" placeholder="5" min="1" step="1" />
@@ -739,6 +750,12 @@
   }
 
   // ── Cascade helpers ──────────────────────────
+  function todayOffset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
   function setSelectOpts(id, opts, valKey, labelKey, preselect, placeholder) {
     const el = document.getElementById(id);
     el.innerHTML = "";
@@ -940,6 +957,8 @@
       document.getElementById("PASSWORD").value = "";
       document.getElementById("INTERVAL_MINUTES").value = s.INTERVAL_MINUTES ?? 5;
       _savedDoctorIds = Array.isArray(s.DOCTORS) ? s.DOCTORS : [];
+      document.getElementById("VISIT_DATE_FROM").value = s.VISIT_DATE_FROM || todayOffset(0);
+      document.getElementById("VISIT_DATE_TO").value = s.VISIT_DATE_TO || todayOffset(14);
       document.getElementById("ENGLISH").checked = Boolean(s.ENGLISH);
       document.getElementById("SKIP_IMMEDIATE").checked = Boolean(s.SKIP_IMMEDIATE);
       document.getElementById("NOTIFY_EMAIL").value = s.NOTIFY_EMAIL || "";
@@ -964,6 +983,8 @@
         SERVICE_TYPE: document.getElementById("SERVICE_TYPE").value.trim(),
         CITY_ID: parseInt(document.getElementById("CITY_ID").value, 10),
         INTERVAL_MINUTES: parseFloat(document.getElementById("INTERVAL_MINUTES").value),
+        VISIT_DATE_FROM: document.getElementById("VISIT_DATE_FROM").value,
+        VISIT_DATE_TO: document.getElementById("VISIT_DATE_TO").value,
         DOCTORS: [...document.querySelectorAll(".doctor-checkbox:checked")].map(el => parseInt(el.value, 10)),
         DEPARTMENTS: [...document.querySelectorAll(".dept-checkbox:checked")].map(el => parseInt(el.value, 10)),
         ENGLISH: document.getElementById("ENGLISH").checked,

@@ -117,6 +117,8 @@ async function run(settings = {}) {
     SKIP_IMMEDIATE = true,
     SERVICE = "1765",
     SERVICE_TYPE = "13",
+    VISIT_DATE_FROM = "",
+    VISIT_DATE_TO = "",
   } = settings;
 
   const client = await createEnelClient(settings);
@@ -165,8 +167,8 @@ async function run(settings = {}) {
     ServiceLock: SERVICE,
     ServiceTypeLock: SERVICE_TYPE,
     City: CITY_ID,
-    VisitDateFrom: getPolishDate(0),
-    VisitDateTo: getPolishDate(14),
+    VisitDateFrom: VISIT_DATE_FROM || getPolishDate(0),
+    VisitDateTo: VISIT_DATE_TO || getPolishDate(14),
     DateIssued: getPolishDate(0),
     Service: SERVICE,
     ServiceType: SERVICE_TYPE,
