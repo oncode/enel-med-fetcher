@@ -257,7 +257,7 @@
     .hint { font-family: var(--mono); font-size: 10px; color: var(--flat-dim); letter-spacing: .02em; }
 
     /* department checkbox list */
-    .dept-list {
+    .dept-list, .doctor-list {
       background: var(--ink2);
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -268,7 +268,7 @@
       padding: 4px;
       transition: border-color .15s;
     }
-    .dept-list:focus-within { border-color: var(--phosphor); }
+    .dept-list:focus-within, .doctor-list:focus-within { border-color: var(--phosphor); }
     .dept-placeholder {
       display: block;
       padding: 10px 12px;
@@ -276,7 +276,7 @@
       font-size: 12px;
       color: var(--flat-dim);
     }
-    .dept-item {
+    .dept-item, .doctor-item {
       display: flex;
       align-items: center;
       gap: 9px;
@@ -285,8 +285,8 @@
       cursor: pointer;
       user-select: none;
     }
-    .dept-item:hover { background: rgba(52,224,161,.06); }
-    .dept-item input[type="checkbox"] {
+    .dept-item:hover, .doctor-item:hover { background: rgba(52,224,161,.06); }
+    .dept-item input[type="checkbox"], .doctor-item input[type="checkbox"] {
       width: 14px; height: 14px;
       flex-shrink: 0;
       accent-color: var(--phosphor);
@@ -294,13 +294,13 @@
       background: var(--ink2);
       margin: 0;
     }
-    .dept-name {
+    .dept-name, .doctor-name {
       font-family: var(--mono);
       font-size: 12px;
       line-height: 1.35;
       color: var(--paper);
     }
-    .dept-count {
+    .dept-count, .doctor-count {
       font-family: var(--mono);
       font-size: 10px;
       color: var(--flat-dim);
@@ -540,14 +540,17 @@
     </div>
 
     <div class="field">
-      <label for="INTERVAL_MINUTES">Check every (min)</label>
-      <input type="number" id="INTERVAL_MINUTES" placeholder="5" min="1" step="1" />
-      <span class="hint">how often the monitor takes a reading</span>
+      <label>Doctors <span class="doctor-count" id="doctor-count"></span></label>
+      <div class="doctor-list" id="doctor-list">
+        <span class="dept-placeholder">Select a service first</span>
+      </div>
+      <span class="hint">leave all unchecked to monitor all doctors</span>
     </div>
 
     <div class="field">
-      <label for="DOCTORS">Doctor IDs — comma separated, empty for all</label>
-      <input type="text" id="DOCTORS" placeholder="123, 456 — or leave empty" />
+      <label for="INTERVAL_MINUTES">Check every (min)</label>
+      <input type="number" id="INTERVAL_MINUTES" placeholder="5" min="1" step="1" />
+      <span class="hint">how often the monitor takes a reading</span>
     </div>
 
     <div class="switches">
@@ -769,6 +772,55 @@
     document.getElementById("dept-count").textContent = total ? `(${checked}/${total})` : "";
   }
 
+  function resetDoctorList(msg) {
+    const list = document.getElementById("doctor-list");
+    list.innerHTML = `<span class="dept-placeholder">${msg}</span>`;
+    document.getElementById("doctor-count").textContent = "";
+  }
+
+  function updateDoctorCount() {
+    const total = document.querySelectorAll(".doctor-checkbox").length;
+    const checked = document.querySelectorAll(".doctor-checkbox:checked").length;
+    document.getElementById("doctor-count").textContent = total ? `(${checked}/${total})` : "";
+  }
+
+  let _savedDoctorIds = [];
+
+  async function loadDoctors(serviceId, departmentIds) {
+    resetDoctorList("Loading…");
+    try {
+      const docs = await fetch(`/api/options/doctors?serviceId=${serviceId}&departmentIds=${departmentIds}`).then(r => r.json());
+      if (docs.error) throw new Error(docs.error);
+      const list = document.getElementById("doctor-list");
+      if (docs.length === 0) {
+        list.innerHTML = `<span class="dept-placeholder">No doctors found</span>`;
+        document.getElementById("doctor-count").textContent = "";
+        return;
+      }
+      list.innerHTML = "";
+      docs.forEach(d => {
+        const lbl = document.createElement("label");
+        lbl.className = "doctor-item";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "doctor-checkbox";
+        cb.value = d.DoctorId;
+        cb.checked = _savedDoctorIds.length > 0 && _savedDoctorIds.includes(d.DoctorId);
+        cb.addEventListener("change", updateDoctorCount);
+        const span = document.createElement("span");
+        span.className = "doctor-name";
+        span.textContent = d.DoctorName || `${d.FirstName || ""} ${d.LastName || ""}`.trim() || `ID ${d.DoctorId}`;
+        lbl.appendChild(cb);
+        lbl.appendChild(span);
+        list.appendChild(lbl);
+      });
+      updateDoctorCount();
+      _savedDoctorIds = [];
+    } catch (e) {
+      resetDoctorList("Failed to load doctors");
+    }
+  }
+
   let _deptDebounce = null;
   function onDeptChange() {
     updateDeptCount();
@@ -776,7 +828,7 @@
     _deptDebounce = setTimeout(() => {
       const ids = getCheckedDeptIds();
       if (ids) loadServiceTypes(ids, null, null);
-      else { resetSelect("SERVICE_TYPE", "Select departments first"); resetSelect("SERVICE", "Select a category first"); }
+      else { resetSelect("SERVICE_TYPE", "Select departments first"); resetSelect("SERVICE", "Select a category first"); resetDoctorList("Select a service first"); }
     }, 350);
   }
 
@@ -835,6 +887,7 @@
   async function loadServiceTypes(departmentIds, preselectTypeId, preselectServiceId) {
     resetSelect("SERVICE_TYPE", "Loading…");
     resetSelect("SERVICE", "Select a category first");
+    resetDoctorList("Select a service first");
     try {
       const types = await fetch(`/api/options/service-types?departmentIds=${departmentIds}`).then(r => r.json());
       if (types.error) throw new Error(types.error);
@@ -848,6 +901,7 @@
 
   async function loadServices(departmentIds, typeId, preselectServiceId) {
     resetSelect("SERVICE", "Loading…");
+    resetDoctorList("Select a service first");
     try {
       const svcs = await fetch(`/api/options/services?typeId=${typeId}&departmentIds=${departmentIds}`).then(r => r.json());
       if (svcs.error) throw new Error(svcs.error);
@@ -863,13 +917,19 @@
     const cityName = sel.options[sel.selectedIndex]?.text || "—";
     document.getElementById("city-label").textContent = this.value ? cityName : "—";
     if (this.value) loadDepartments(this.value, null, null, null);
-    else { resetDeptList("Select a city first"); resetSelect("SERVICE_TYPE", "Select a city first"); resetSelect("SERVICE", "Select a category first"); }
+    else { resetDeptList("Select a city first"); resetSelect("SERVICE_TYPE", "Select a city first"); resetSelect("SERVICE", "Select a category first"); resetDoctorList("Select a service first"); }
   });
 
   document.getElementById("SERVICE_TYPE").addEventListener("change", function () {
     const deptIds = getCheckedDeptIds();
     if (deptIds && this.value) loadServices(deptIds, this.value, null);
-    else resetSelect("SERVICE", "Select a category first");
+    else { resetSelect("SERVICE", "Select a category first"); resetDoctorList("Select a service first"); }
+  });
+
+  document.getElementById("SERVICE").addEventListener("change", function () {
+    const deptIds = getCheckedDeptIds();
+    if (deptIds && this.value) loadDoctors(this.value, deptIds);
+    else resetDoctorList("Select a service first");
   });
 
   // ── Settings load / save ─────────────────────
@@ -879,7 +939,7 @@
       document.getElementById("LOGIN_ID").value = s.LOGIN_ID || "";
       document.getElementById("PASSWORD").value = "";
       document.getElementById("INTERVAL_MINUTES").value = s.INTERVAL_MINUTES ?? 5;
-      document.getElementById("DOCTORS").value = Array.isArray(s.DOCTORS) ? s.DOCTORS.join(", ") : "";
+      _savedDoctorIds = Array.isArray(s.DOCTORS) ? s.DOCTORS : [];
       document.getElementById("ENGLISH").checked = Boolean(s.ENGLISH);
       document.getElementById("SKIP_IMMEDIATE").checked = Boolean(s.SKIP_IMMEDIATE);
       document.getElementById("NOTIFY_EMAIL").value = s.NOTIFY_EMAIL || "";
@@ -897,11 +957,6 @@
     const btn = document.getElementById("btn-save");
     btn.disabled = true;
     try {
-      const doctorsRaw = document.getElementById("DOCTORS").value.trim();
-      const doctors = doctorsRaw
-        ? doctorsRaw.split(",").map(x => x.trim()).filter(Boolean).map(Number)
-        : [];
-
       const body = {
         LOGIN_ID: document.getElementById("LOGIN_ID").value.trim(),
         PASSWORD: document.getElementById("PASSWORD").value,
@@ -909,7 +964,7 @@
         SERVICE_TYPE: document.getElementById("SERVICE_TYPE").value.trim(),
         CITY_ID: parseInt(document.getElementById("CITY_ID").value, 10),
         INTERVAL_MINUTES: parseFloat(document.getElementById("INTERVAL_MINUTES").value),
-        DOCTORS: doctors,
+        DOCTORS: [...document.querySelectorAll(".doctor-checkbox:checked")].map(el => parseInt(el.value, 10)),
         DEPARTMENTS: [...document.querySelectorAll(".dept-checkbox:checked")].map(el => parseInt(el.value, 10)),
         ENGLISH: document.getElementById("ENGLISH").checked,
         SKIP_IMMEDIATE: document.getElementById("SKIP_IMMEDIATE").checked,

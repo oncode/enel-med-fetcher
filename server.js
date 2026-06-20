@@ -248,6 +248,26 @@ app.get("/api/options/services", async (req, res) => {
   }
 });
 
+app.get("/api/options/doctors", async (req, res) => {
+  const { serviceId, departmentIds } = req.query;
+  if (!serviceId || !departmentIds) return res.status(400).json({ error: "serviceId and departmentIds required" });
+  const depIds = departmentIds.split(",").map(Number).filter(Boolean);
+  try {
+    const client = await getEnelClient();
+    const params = new URLSearchParams({ ServiceId: serviceId, ForeignLanguage: false });
+    depIds.forEach(id => params.append("DepartmentsId[]", id));
+    const resp = await client.post(
+      "/api/EnelmedApi/GetDoctorsByDepartmentIdAndByServiceId",
+      params,
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+    res.json(resp.data);
+  } catch (err) {
+    _enelClient = null;
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/run", async (req, res) => {
   if (status.isRunning) return res.json({ message: "Already running" });
   runOnce().then(scheduleNext);
