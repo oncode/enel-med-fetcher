@@ -229,7 +229,7 @@
       text-transform: uppercase;
       color: var(--flat);
     }
-    input[type="text"], input[type="password"], input[type="number"] {
+    input[type="text"], input[type="password"], input[type="number"], select {
       background: var(--ink2);
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -242,7 +242,18 @@
       transition: border-color .15s, box-shadow .15s;
     }
     input::placeholder { color: var(--flat-dim); }
-    input:focus { border-color: var(--phosphor); box-shadow: 0 0 0 3px rgba(52,224,161,.14); }
+    input:focus, select:focus { border-color: var(--phosphor); box-shadow: 0 0 0 3px rgba(52,224,161,.14); }
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236a8f96' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 34px;
+      cursor: pointer;
+    }
+    select:disabled { opacity: .45; cursor: not-allowed; }
+    select option { background: #0c2228; }
     .hint { font-family: var(--mono); font-size: 10px; color: var(--flat-dim); letter-spacing: .02em; }
 
     /* toggles */
@@ -448,27 +459,32 @@
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="field">
-        <label for="SERVICE">Service ID</label>
-        <input type="text" id="SERVICE" placeholder="1765" />
-      </div>
-      <div class="field">
-        <label for="SERVICE_TYPE">Service type ID</label>
-        <input type="text" id="SERVICE_TYPE" placeholder="13" />
-      </div>
+    <div class="field">
+      <label for="CITY_ID">City</label>
+      <select id="CITY_ID">
+        <option value="">Loading cities…</option>
+      </select>
     </div>
 
     <div class="grid2">
       <div class="field">
-        <label for="CITY_ID">City ID</label>
-        <input type="number" id="CITY_ID" placeholder="1 — Warszawa" min="1" />
+        <label for="SERVICE_TYPE">Category</label>
+        <select id="SERVICE_TYPE" disabled>
+          <option value="">Select a city first</option>
+        </select>
       </div>
       <div class="field">
-        <label for="INTERVAL_MINUTES">Check every (min)</label>
-        <input type="number" id="INTERVAL_MINUTES" placeholder="5" min="1" step="1" />
-        <span class="hint">how often the monitor takes a reading</span>
+        <label for="SERVICE">Service</label>
+        <select id="SERVICE" disabled>
+          <option value="">Select a category first</option>
+        </select>
       </div>
+    </div>
+
+    <div class="field">
+      <label for="INTERVAL_MINUTES">Check every (min)</label>
+      <input type="number" id="INTERVAL_MINUTES" placeholder="5" min="1" step="1" />
+      <span class="hint">how often the monitor takes a reading</span>
     </div>
 
     <div class="field">
@@ -661,14 +677,84 @@
     } catch {}
   }
 
+  // ── Cascade helpers ──────────────────────────
+  function setSelectOpts(id, opts, valKey, labelKey, preselect, placeholder) {
+    const el = document.getElementById(id);
+    el.innerHTML = "";
+    if (placeholder) el.appendChild(new Option(placeholder, ""));
+    opts.forEach(o => el.appendChild(new Option(o[labelKey], o[valKey])));
+    el.disabled = false;
+    if (preselect) el.value = String(preselect);
+    return el.value;
+  }
+
+  function resetSelect(id, msg) {
+    const el = document.getElementById(id);
+    el.innerHTML = "";
+    el.appendChild(new Option(msg, ""));
+    el.disabled = true;
+  }
+
+  async function loadCities(preselectCityId, preselectTypeId, preselectServiceId) {
+    const el = document.getElementById("CITY_ID");
+    el.innerHTML = "";
+    el.appendChild(new Option("Loading…", ""));
+    el.disabled = true;
+    try {
+      const cities = await fetch("/api/options/cities").then(r => r.json());
+      if (cities.error) throw new Error(cities.error);
+      const chosen = setSelectOpts("CITY_ID", cities, "CityId", "CityName", preselectCityId, "— select city —");
+      if (chosen) await loadServiceTypes(chosen, preselectTypeId, preselectServiceId);
+    } catch (e) {
+      el.innerHTML = "";
+      el.appendChild(new Option("Failed to load cities", ""));
+      el.disabled = false;
+    }
+  }
+
+  async function loadServiceTypes(cityId, preselectTypeId, preselectServiceId) {
+    resetSelect("SERVICE_TYPE", "Loading…");
+    resetSelect("SERVICE", "Select a category first");
+    try {
+      const types = await fetch(`/api/options/service-types?cityId=${cityId}`).then(r => r.json());
+      if (types.error) throw new Error(types.error);
+      const chosen = setSelectOpts("SERVICE_TYPE", types, "TypeId", "TypeName", preselectTypeId, "— select category —");
+      if (chosen) await loadServices(cityId, chosen, preselectServiceId);
+    } catch (e) {
+      resetSelect("SERVICE_TYPE", "Failed to load categories");
+      document.getElementById("SERVICE_TYPE").disabled = false;
+    }
+  }
+
+  async function loadServices(cityId, typeId, preselectServiceId) {
+    resetSelect("SERVICE", "Loading…");
+    try {
+      const svcs = await fetch(`/api/options/services?cityId=${cityId}&typeId=${typeId}`).then(r => r.json());
+      if (svcs.error) throw new Error(svcs.error);
+      setSelectOpts("SERVICE", svcs, "ServiceId", "Name", preselectServiceId, "— select service —");
+    } catch (e) {
+      resetSelect("SERVICE", "Failed to load services");
+      document.getElementById("SERVICE").disabled = false;
+    }
+  }
+
+  document.getElementById("CITY_ID").addEventListener("change", function () {
+    if (this.value) loadServiceTypes(this.value, null, null);
+    else { resetSelect("SERVICE_TYPE", "Select a city first"); resetSelect("SERVICE", "Select a category first"); }
+  });
+
+  document.getElementById("SERVICE_TYPE").addEventListener("change", function () {
+    const cityId = document.getElementById("CITY_ID").value;
+    if (cityId && this.value) loadServices(cityId, this.value, null);
+    else resetSelect("SERVICE", "Select a category first");
+  });
+
+  // ── Settings load / save ─────────────────────
   async function loadSettings() {
     try {
       const s = await fetch("/api/settings").then(r => r.json());
       document.getElementById("LOGIN_ID").value = s.LOGIN_ID || "";
       document.getElementById("PASSWORD").value = "";
-      document.getElementById("SERVICE").value = s.SERVICE || "";
-      document.getElementById("SERVICE_TYPE").value = s.SERVICE_TYPE || "";
-      document.getElementById("CITY_ID").value = s.CITY_ID ?? 1;
       document.getElementById("INTERVAL_MINUTES").value = s.INTERVAL_MINUTES ?? 5;
       document.getElementById("DOCTORS").value = Array.isArray(s.DOCTORS) ? s.DOCTORS.join(", ") : "";
       document.getElementById("ENGLISH").checked = Boolean(s.ENGLISH);
@@ -679,6 +765,8 @@
       document.getElementById("SMTP_USER").value = s.SMTP_USER || "";
       document.getElementById("SMTP_PASS").value = "";
       alertsArmed = Boolean(s.NOTIFY_EMAIL && s.SMTP_USER);
+      // cascade selects with saved values
+      await loadCities(s.CITY_ID, s.SERVICE_TYPE, s.SERVICE);
     } catch {}
   }
 

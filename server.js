@@ -2,7 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const nodemailer = require("nodemailer");
-const { run } = require("./index");
+const { run, createEnelClient } = require("./index");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -125,6 +125,24 @@ function startInterval() {
   }, ms);
 }
 
+// ── Enel-Med session cache (shared across option proxy routes) ──
+let _enelClient = null;
+let _enelSessionExpiry = 0;
+
+async function getEnelClient() {
+  if (_enelClient && Date.now() < _enelSessionExpiry) return _enelClient;
+  const settings = loadSettings();
+  if (!settings.LOGIN_ID || !settings.PASSWORD) throw new Error("No credentials configured");
+  _enelClient = await createEnelClient(settings);
+  _enelSessionExpiry = Date.now() + 25 * 60 * 1000;
+  return _enelClient;
+}
+
+function invalidateEnelClient() {
+  _enelClient = null;
+  _enelSessionExpiry = 0;
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -162,8 +180,58 @@ app.post("/api/settings", (req, res) => {
   };
 
   saveSettings(updated);
+  invalidateEnelClient();
   startInterval();
   res.json({ message: "Settings saved" });
+});
+
+// ── Option proxy routes (cascade selects in UI) ──
+
+app.get("/api/options/cities", async (req, res) => {
+  try {
+    const client = await getEnelClient();
+    const r = await client.get("/api/EnelmedApi/GetAllCities");
+    res.json(r.data);
+  } catch (err) {
+    _enelClient = null;
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/options/service-types", async (req, res) => {
+  const { cityId } = req.query;
+  if (!cityId) return res.status(400).json({ error: "cityId required" });
+  try {
+    const client = await getEnelClient();
+    const depsResp = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
+    const depIds = depsResp.data.map(d => d.DepartmentId);
+    const typesResp = await client.post(
+      "/api/EnelmedApi/GetServiceTypesByDepartmentId",
+      JSON.stringify(depIds),
+      { headers: { "Content-Type": "application/json" } }
+    );
+    res.json(typesResp.data);
+  } catch (err) {
+    _enelClient = null;
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/options/services", async (req, res) => {
+  const { cityId, typeId } = req.query;
+  if (!cityId || !typeId) return res.status(400).json({ error: "cityId and typeId required" });
+  try {
+    const client = await getEnelClient();
+    const depsResp = await client.get("/api/EnelmedApi/GetDepartmentsByCityId", { params: { id: cityId } });
+    const depIds = depsResp.data.map(d => d.DepartmentId);
+    const params = new URLSearchParams({ typeId });
+    depIds.forEach(id => params.append("departments", id));
+    const servicesResp = await client.get(`/api/EnelmedApi/GetServicesByTypeDepartmentId?${params}`);
+    res.json(servicesResp.data);
+  } catch (err) {
+    _enelClient = null;
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/api/run", async (req, res) => {

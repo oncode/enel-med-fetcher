@@ -60,18 +60,9 @@ function getPolishDate(offsetDays = 0) {
   return polishDate.toISOString().slice(0, 10);
 }
 
-// ---------- main ----------
-async function run(settings = {}) {
-  const {
-    LOGIN_ID,
-    PASSWORD,
-    CITY_ID = 1,
-    ENGLISH = false,
-    DOCTORS = [],
-    SKIP_IMMEDIATE = true,
-    SERVICE = "1765",
-    SERVICE_TYPE = "13",
-  } = settings;
+// ---------- auth ----------
+async function createEnelClient(settings = {}) {
+  const { LOGIN_ID, PASSWORD, ENGLISH = false } = settings;
 
   const jar = new CookieJar();
   const client = wrapper(
@@ -87,7 +78,6 @@ async function run(settings = {}) {
     })
   );
 
-  // Change language to English
   if (ENGLISH) {
     await client.post(
       "/Home/ChangeCulture",
@@ -96,7 +86,6 @@ async function run(settings = {}) {
     );
   }
 
-  // LOGIN
   const loginPage = await client.get("/Account/Login");
   const csrf = extractCsrf(loginPage.data);
 
@@ -114,6 +103,22 @@ async function run(settings = {}) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" }
     }
   );
+
+  return client;
+}
+
+// ---------- main ----------
+async function run(settings = {}) {
+  const {
+    CITY_ID = 1,
+    ENGLISH = false,
+    DOCTORS = [],
+    SKIP_IMMEDIATE = true,
+    SERVICE = "1765",
+    SERVICE_TYPE = "13",
+  } = settings;
+
+  const client = await createEnelClient(settings);
   console.log("✅ Logged in");
 
   // GET REFERRAL
@@ -202,7 +207,7 @@ async function run(settings = {}) {
   return foundCount;
 }
 
-module.exports = { run };
+module.exports = { run, createEnelClient };
 
 // Run directly when invoked as main script
 if (require.main === module) {
